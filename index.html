@@ -3,26 +3,22 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>Photo Harmony - Luxury AR & Slide AR Camera</title>
+  <title>Photo Harmony - Luxury Pro AR Camera & Shared Album</title>
   <style>
     * {
       box-sizing: border-box;
     }
-    body, html {
+    body {
       margin: 0;
       padding: 0;
-      width: 100vw;
-      height: 100vh;
       overflow: hidden;
       font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Arial, sans-serif;
       background: #000;
       touch-action: none;
       color: #f7f3ed;
     }
-
-    /* 1. 背景カメラ映像 */
     #webcam {
-      position: fixed;
+      position: absolute;
       top: 0;
       left: 0;
       width: 100vw;
@@ -32,10 +28,8 @@
       transform-origin: center center;
       transition: transform 0.2s ease-out;
     }
-
-    /* 2. ARキャンバス（ハートエフェクト） */
     #ar-layer {
-      position: fixed;
+      position: absolute;
       top: 0;
       left: 0;
       width: 100vw;
@@ -50,47 +44,17 @@
       width: 100vw;
       height: 100vh;
     }
-
-    /* 3. オーバーレイ・スライドショー層 */
-    #slide-container {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      z-index: 3;
-      touch-action: none;
-    }
-    #slide-img {
-      max-width: 75vw;
-      max-height: 60vh;
-      object-fit: contain;
-      transform-origin: center center;
-      user-select: none;
-      -webkit-user-drag: none;
-      filter: drop-shadow(0 10px 20px rgba(0,0,0,0.5));
-      transition: opacity 0.2s;
-    }
-    #slide-img.hidden {
-      opacity: 0;
-      pointer-events: none;
-    }
-
-    /* UIコントロール（上部ヘッダー） */
     #top-controls {
-      position: fixed;
+      position: absolute;
       top: 15px;
       left: 50%;
       transform: translateX(-50%);
       display: flex;
-      gap: 6px;
+      gap: 8px;
       background: rgba(15, 15, 15, 0.75);
       backdrop-filter: blur(16px);
       -webkit-backdrop-filter: blur(16px);
-      padding: 6px 12px;
+      padding: 6px 14px;
       border-radius: 25px;
       border: 1px solid rgba(228, 195, 139, 0.4);
       z-index: 10;
@@ -101,32 +65,29 @@
       background: transparent;
       border: 1px solid rgba(228, 195, 139, 0.5);
       color: #f7f3ed;
-      padding: 5px 10px;
+      padding: 5px 12px;
       border-radius: 15px;
-      font-size: 10px;
+      font-size: 11px;
       letter-spacing: 0.05em;
       cursor: pointer;
       transition: all 0.2s;
       outline: none;
-      white-space: nowrap;
+      display: flex;
+      align-items: center;
+      gap: 4px;
     }
     .control-btn:active {
       transform: scale(0.95);
       background: rgba(228, 195, 139, 0.2);
     }
-    .control-btn.active {
-      background: rgba(228, 195, 139, 0.3);
-      border-color: #e4c38b;
-    }
-
     #info-overlay {
-      position: fixed;
-      top: 62px;
+      position: absolute;
+      top: 65px;
       left: 50%;
       transform: translateX(-50%);
       color: rgba(247, 243, 237, 0.85);
-      font-size: 9.5px;
-      letter-spacing: 0.05em;
+      font-size: 10px;
+      letter-spacing: 0.08em;
       z-index: 10;
       pointer-events: none;
       text-align: center;
@@ -134,11 +95,10 @@
       white-space: nowrap;
     }
     #status { font-weight: 600; color: #e4c38b; }
-
-    /* シャッター・操作バー（下部） */
+    
     #shutter-container {
-      position: fixed;
-      bottom: 30px;
+      position: absolute;
+      bottom: 35px;
       left: 0;
       width: 100%;
       display: flex;
@@ -155,16 +115,17 @@
       border: 3px solid rgba(228, 195, 139, 0.95);
       cursor: pointer;
       box-shadow: 0 12px 35px rgba(0,0,0,0.7), inset 0 2px 6px rgba(255,255,255,0.95);
-      transition: transform 0.15s cubic-bezier(0.2, 0.8, 0.2, 1);
+      transition: transform 0.15s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.15s ease;
       outline: none;
     }
     #shutter-btn:active {
       transform: scale(0.92);
+      box-shadow: 0 5px 15px rgba(0,0,0,0.5), inset 0 1px 3px rgba(0,0,0,0.4);
     }
 
     .icon-btn {
-      width: 46px;
-      height: 46px;
+      width: 48px;
+      height: 48px;
       border-radius: 50%;
       background: rgba(15, 15, 15, 0.7);
       border: 1px solid rgba(228, 195, 139, 0.5);
@@ -179,7 +140,9 @@
       font-size: 18px;
       position: relative;
     }
-    .icon-btn:active { transform: scale(0.92); }
+    .icon-btn:active {
+      transform: scale(0.92);
+    }
     #badge {
       position: absolute;
       top: -4px;
@@ -193,17 +156,24 @@
       display: none;
     }
 
-    /* モーダル表示 */
+    /* アルバムモーダル */
     #album-modal, #qr-modal {
       position: fixed;
-      top: 0; left: 0;
-      width: 100vw; height: 100vh;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
       background: rgba(10, 10, 12, 0.92);
       backdrop-filter: blur(20px);
       -webkit-backdrop-filter: blur(20px);
       z-index: 100;
       display: none;
       flex-direction: column;
+      animation: fadeIn 0.25s ease-out;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: scale(0.98); }
+      to { opacity: 1; transform: scale(1); }
     }
     .modal-header {
       padding: 16px 20px;
@@ -212,70 +182,117 @@
       align-items: center;
       border-bottom: 1px solid rgba(228, 195, 139, 0.2);
     }
-    .modal-title { font-size: 15px; font-weight: 600; color: #e4c38b; }
-    .close-btn { background: none; border: none; color: #f7f3ed; font-size: 22px; cursor: pointer; }
+    .modal-title {
+      font-size: 16px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      color: #e4c38b;
+    }
+    .close-btn {
+      background: none;
+      border: none;
+      color: #f7f3ed;
+      font-size: 24px;
+      cursor: pointer;
+    }
     .album-grid {
-      flex: 1; overflow-y: auto; padding: 15px;
-      display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-      gap: 10px; align-content: start;
+      flex: 1;
+      overflow-y: auto;
+      padding: 15px;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+      gap: 10px;
+      align-content: start;
     }
     .album-item {
-      position: relative; aspect-ratio: 1; border-radius: 10px; overflow: hidden;
-      border: 1px solid rgba(228, 195, 139, 0.3); background: #111;
+      position: relative;
+      aspect-ratio: 1;
+      border-radius: 10px;
+      overflow: hidden;
+      border: 1px solid rgba(228, 195, 139, 0.3);
+      background: #111;
     }
-    .album-item img { width: 100%; height: 100%; object-fit: cover; }
+    .album-item img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
     .album-item .time-tag {
-      position: absolute; bottom: 4px; right: 4px; background: rgba(0,0,0,0.6);
-      font-size: 8px; padding: 2px 4px; border-radius: 4px; color: #e4c38b;
+      position: absolute;
+      bottom: 4px;
+      right: 4px;
+      background: rgba(0,0,0,0.6);
+      font-size: 9px;
+      padding: 2px 4px;
+      border-radius: 4px;
+      color: #e4c38b;
     }
-    .empty-state { grid-column: 1 / -1; text-align: center; color: #888; font-size: 13px; margin-top: 60px; }
+    .empty-state {
+      grid-column: 1 / -1;
+      text-align: center;
+      color: #888;
+      font-size: 13px;
+      margin-top: 60px;
+    }
     
+    /* QRコード表示モーダル */
     .qr-container {
-      flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; text-align: center;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      text-align: center;
     }
-    #qrcode { background: #fff; padding: 16px; border-radius: 16px; margin-bottom: 20px; }
-    .qr-desc { font-size: 12px; color: #ccc; line-height: 1.6; max-width: 280px; }
+    #qrcode {
+      background: #fff;
+      padding: 16px;
+      border-radius: 16px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      margin-bottom: 20px;
+    }
+    .qr-desc {
+      font-size: 13px;
+      color: #ccc;
+      line-height: 1.6;
+      max-width: 280px;
+    }
 
+    /* フラッシュエフェクト */
     #flash {
-      position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-      background: #fff; opacity: 0; pointer-events: none; z-index: 50; transition: opacity 0.15s ease-out;
+      position: absolute;
+      top: 0; left: 0; width: 100vw; height: 100vh;
+      background: #fff;
+      opacity: 0;
+      pointer-events: none;
+      z-index: 50;
+      transition: opacity 0.1s ease-out;
     }
   </style>
-
-  <!-- Face-api.js & QR生成ライブラリ -->
   <script defer src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api/dist/face-api.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
 <body>
 
-  <!-- 1. 背景カメラ映像 -->
   <video id="webcam" autoplay playsinline muted></video>
 
-  <!-- 2. ARキャンバス (ハートパーティクル) -->
-  <div id="ar-layer">
-    <canvas id="ar-canvas"></canvas>
-  </div>
-
-  <!-- 3. イラストスライドオーバーレイ (ドラッグ/ピンチ/タップ操作) -->
-  <div id="slide-container">
-    <img id="slide-img" src="1.jpg" alt="スライド">
-  </div>
-
-  <!-- ヘッダーUI -->
   <div id="top-controls">
     <button class="control-btn" id="effect-btn" onclick="toggleEffectPower()">FX: Mid</button>
-    <button class="control-btn" id="slide-toggle-btn" onclick="toggleSlideShow()">スライド: ON</button>
-    <div style="width: 1px; height: 14px; background: rgba(228,195,139,0.3); margin: 0 2px;"></div>
+    <div style="width: 1px; height: 16px; background: rgba(228,195,139,0.3); margin: 0 2px;"></div>
     <button class="control-btn" onclick="switchCamera()">Cam ⟳</button>
   </div>
 
   <div id="info-overlay">
-    PHOTO HARMONY | <span id="status">カメラ起動中...</span>
+    PHOTO HARMONY | <span id="status">MODEL LOADING...</span> | リアルタイム共有
+  </div>
+
+  <div id="ar-layer">
+    <canvas id="ar-canvas"></canvas>
   </div>
 
   <div id="flash"></div>
 
-  <!-- フッター操作バー -->
   <div id="shutter-container">
     <button class="icon-btn" onclick="openQRModal()" title="共有用QRを表示">
       <span>📱</span>
@@ -296,7 +313,7 @@
       <button class="close-btn" onclick="closeAlbumModal()">✕</button>
     </div>
     <div class="album-grid" id="album-grid">
-      <div class="empty-state">まだ写真がありません。<br>シャッターを押して撮影・共有しましょう！</div>
+      <div class="empty-state">まだ写真がありません。<br>シャッターを押して投稿しましょう！</div>
     </div>
   </div>
 
@@ -309,7 +326,7 @@
     <div class="qr-container">
       <div id="qrcode"></div>
       <div class="qr-desc">
-        このQRコードを別のスマホカメラで読み込むと、同じARカメラ＆共有アルバムに参加できます。
+        このQRコードを他の人のスマホカメラで読み込むと、同じARカメラが起動し撮影した写真をリアルタイム共有できます。
       </div>
     </div>
   </div>
@@ -323,70 +340,14 @@
     const badgeEl = document.getElementById('badge');
     const flashEl = document.getElementById('flash');
 
-    const slideContainer = document.getElementById('slide-container');
-    const slideImg = document.getElementById('slide-img');
-
-    // 10枚のイラスト画像リスト
-    const images = [
-      '1.jpg', '2.jpg', '3.jpg', '4.jpg', '5.jpg',
-      '6.jpg', '7.jpg', '8.jpg', '9.jpg', '10.jpg'
-    ];
-    let currentIndex = 0;
-    let isSlideVisible = true;
-
-    // --- カメラ＆ズーム制御 ---
     let currentZoom = 1;
+    const MIN_ZOOM = 1;
+    const MAX_ZOOM = 10;
     let useFrontCamera = false;
     let currentStream = null;
     let faces = [];
 
-    async function initCamera() {
-      if (currentStream) {
-        currentStream.getTracks().forEach(track => track.stop());
-      }
-      try {
-        const constraints = {
-          video: {
-            facingMode: useFrontCamera ? "user" : { exact: "environment" },
-            width: { ideal: 1920 },
-            height: { ideal: 1080 }
-          },
-          audio: false
-        };
-        currentStream = await navigator.mediaDevices.getUserMedia(constraints);
-        webcamEl.srcObject = currentStream;
-        
-        webcamEl.onloadedmetadata = () => {
-          startFaceDetection();
-          updateStatusText();
-        };
-      } catch (err) {
-        try {
-          const fallbackConstraints = { video: true, audio: false };
-          currentStream = await navigator.mediaDevices.getUserMedia(fallbackConstraints);
-          webcamEl.srcObject = currentStream;
-          webcamEl.onloadedmetadata = () => {
-            startFaceDetection();
-            updateStatusText();
-          };
-        } catch (e) {
-          statusEl.textContent = "カメラエラー: 権限を確認してください";
-          console.error(e);
-        }
-      }
-    }
-
-    function switchCamera() {
-      useFrontCamera = !useFrontCamera;
-      initCamera();
-    }
-
-    function updateStatusText() {
-      const camName = useFrontCamera ? "FRONT" : "BACK";
-      statusEl.textContent = `${camName} CAM | イラスト (${currentIndex + 1}/${images.length}枚目)`;
-    }
-
-    // --- リアルタイム写真共有機能 (BroadcastChannel) ---
+    // --- リアルタイム共有用 (BroadcastChannel / LocalStorage) ---
     const sharedPhotos = [];
     const broadcastChannel = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('photo_harmony_sync') : null;
 
@@ -417,7 +378,7 @@
     function updateAlbumView() {
       const grid = document.getElementById('album-grid');
       if (sharedPhotos.length === 0) {
-        grid.innerHTML = '<div class="empty-state">まだ写真がありません。<br>シャッターを押して撮影・共有しましょう！</div>';
+        grid.innerHTML = '<div class="empty-state">まだ写真がありません。<br>シャッターを押して投稿しましょう！</div>';
         badgeEl.style.display = 'none';
         return;
       }
@@ -445,10 +406,59 @@
       setTimeout(() => { badgeEl.style.transform = 'scale(1)'; }, 200);
     }
 
-    // --- Face-api.js (顔認識回避) ---
+    // --- カメラ制御 ---
+    function applyZoom(level) {
+      currentZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, level));
+      webcamEl.style.transform = `scale(${currentZoom})`;
+    }
+
+    async function initCamera() {
+      if (currentStream) {
+        currentStream.getTracks().forEach(track => track.stop());
+      }
+      try {
+        const constraints = {
+          video: {
+            facingMode: useFrontCamera ? "user" : { exact: "environment" },
+            width: { ideal: 1920 },
+            height: { ideal: 1080 }
+          },
+          audio: false
+        };
+        currentStream = await navigator.mediaDevices.getUserMedia(constraints);
+        webcamEl.srcObject = currentStream;
+        
+        webcamEl.onloadedmetadata = () => {
+          startFaceDetection();
+          statusEl.textContent = useFrontCamera ? "FRONT CAM" : "BACK CAM";
+        };
+      } catch (err) {
+        try {
+          const fallbackConstraints = { video: true, audio: false };
+          currentStream = await navigator.mediaDevices.getUserMedia(fallbackConstraints);
+          webcamEl.srcObject = currentStream;
+          
+          webcamEl.onloadedmetadata = () => {
+            startFaceDetection();
+            statusEl.textContent = "READY";
+          };
+        } catch (e) {
+          statusEl.textContent = "CAMERA ERROR";
+          console.error(e);
+        }
+      }
+    }
+
+    function switchCamera() {
+      useFrontCamera = !useFrontCamera;
+      initCamera();
+    }
+
+    // --- Face-api.js ---
     async function loadModels() {
       const MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model/';
       await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
+      statusEl.textContent = "MODEL LOADED";
     }
 
     async function startFaceDetection() {
@@ -471,87 +481,44 @@
       requestAnimationFrame(detectFaces);
     }
 
-    // --- スライドイラストのタッチ操作 (タップ切替 / ピンチ拡大縮小 / ドラッグ移動) ---
-    let scale = 1;
-    let posX = 0;
-    let posY = 0;
-    let startX = 0;
-    let startY = 0;
-    let initialDistance = null;
-    let initialScale = 1;
-    let isDragging = false;
-    let touchStartTime = 0;
-    let hasMoved = false;
+    // --- ピンチズーム ---
+    let initialPinchDistance = null;
+    let zoomStartValue = 1;
 
-    slideContainer.addEventListener('touchstart', (e) => {
-      touchStartTime = Date.now();
-      hasMoved = false;
+    function getPinchDistance(touches) {
+      if (touches.length < 2) return 0;
+      const dx = touches[0].clientX - touches[1].clientX;
+      const dy = touches[0].clientY - touches[1].clientY;
+      return Math.sqrt(dx * dx + dy * dy);
+    }
 
-      if (e.touches.length === 1) {
-        isDragging = true;
-        startX = e.touches[0].clientX - posX;
-        startY = e.touches[0].clientY - posY;
-      } else if (e.touches.length === 2) {
-        isDragging = false;
-        initialDistance = Math.hypot(
-          e.touches[0].clientX - e.touches[1].clientX,
-          e.touches[0].clientY - e.touches[1].clientY
-        );
-        initialScale = scale;
+    window.addEventListener('touchstart', (e) => {
+      if (e.touches.length === 2) {
+        initialPinchDistance = getPinchDistance(e.touches);
+        zoomStartValue = currentZoom;
+        e.preventDefault();
       }
     }, { passive: false });
 
-    slideContainer.addEventListener('touchmove', (e) => {
-      e.preventDefault();
-      hasMoved = true;
-
-      if (e.touches.length === 1 && isDragging) {
-        posX = e.touches[0].clientX - startX;
-        posY = e.touches[0].clientY - startY;
-        updateTransform();
-      } else if (e.touches.length === 2 && initialDistance !== null && initialDistance > 0) {
-        const currentDistance = Math.hypot(
-          e.touches[0].clientX - e.touches[1].clientX,
-          e.touches[0].clientY - e.touches[1].clientY
-        );
-        const factor = currentDistance / initialDistance;
-        scale = Math.max(0.2, Math.min(5.0, initialScale * factor));
-        updateTransform();
+    window.addEventListener('touchmove', (e) => {
+      if (e.touches.length === 2 && initialPinchDistance !== null) {
+        const currentDistance = getPinchDistance(e.touches);
+        if (initialPinchDistance > 0) {
+          const distanceRatio = currentDistance / initialPinchDistance;
+          const newZoom = zoomStartValue * distanceRatio;
+          applyZoom(newZoom);
+        }
+        e.preventDefault();
       }
     }, { passive: false });
 
-    slideContainer.addEventListener('touchend', (e) => {
-      if (!hasMoved && (Date.now() - touchStartTime < 300) && isSlideVisible) {
-        currentIndex = (currentIndex + 1) % images.length;
-        slideImg.src = images[currentIndex];
-        updateStatusText();
-      }
-
-      if (e.touches.length === 0) {
-        isDragging = false;
-        initialDistance = null;
+    window.addEventListener('touchend', (e) => {
+      if (e.touches.length < 2) {
+        initialPinchDistance = null;
       }
     });
 
-    function updateTransform() {
-      slideImg.style.transform = `translate(${posX}px, ${posY}px) scale(${scale})`;
-    }
-
-    function toggleSlideShow() {
-      isSlideVisible = !isSlideVisible;
-      const btn = document.getElementById('slide-toggle-btn');
-      if (isSlideVisible) {
-        slideImg.classList.remove('hidden');
-        btn.textContent = 'スライド: ON';
-        btn.classList.remove('active');
-      } else {
-        slideImg.classList.add('hidden');
-        btn.textContent = 'スライド: OFF';
-        btn.classList.add('active');
-      }
-    }
-
-    // --- Canvas Resize & DPR ---
+    // --- Canvas Resize ---
     let dpr = window.devicePixelRatio || 1;
 
     function resizeCanvas() {
@@ -568,7 +535,7 @@
     window.addEventListener('resize', resizeCanvas);
     resizeCanvas();
 
-    // --- ARエフェクト (ハートパーティクル) ---
+    // --- エフェクトレベル ---
     let effectPowerLevel = 2;
     function toggleEffectPower() {
       effectPowerLevel = (effectPowerLevel % 3) + 1;
@@ -576,6 +543,7 @@
       document.getElementById('effect-btn').textContent = `FX: ${names[effectPowerLevel]}`;
     }
 
+    // --- パーティクルシステム ---
     const particles = [];
     const pastelColors = ['#FFB6C1', '#FFD1DC', '#FFCCFF', '#E6E6FA', '#D8BFD8', '#B0E0E6', '#98FB98', '#FFFFE0'];
 
@@ -600,7 +568,12 @@
       ctx.translate(x, y);
       ctx.rotate((timeCount * 0.2) + x * 0.01);
       
-      ctx.globalAlpha = onFace ? opacity * 0.1 : opacity;
+      if (onFace) {
+        ctx.globalAlpha = opacity * 0.1;
+      } else {
+        ctx.globalAlpha = opacity;
+      }
+      
       ctx.fillStyle = color;
       ctx.beginPath();
       const width = size;
@@ -620,6 +593,7 @@
       const logicalHeight = window.innerHeight;
 
       ctx.clearRect(0, 0, logicalWidth, logicalHeight);
+
       const activeCount = effectPowerLevel === 1 ? 0.4 : (effectPowerLevel === 2 ? 0.7 : 1.2);
 
       particles.forEach((p) => {
@@ -633,6 +607,7 @@
         }
 
         p.onFace = false;
+        
         if (faces.length > 0) {
           for (const face of faces) {
             const { x, y, width, height } = face.box;
@@ -652,8 +627,9 @@
     }
     renderLoop();
 
-    // --- 撮影・合成 (カメラ + ARハート + イラストスライド) ---
-    shutterBtn.addEventListener('click', async () => {
+    // --- シャッター ＆ 共有追加 ---
+    shutterBtn.addEventListener('click', () => {
+      // フラッシュ演出
       flashEl.style.opacity = '0.8';
       setTimeout(() => { flashEl.style.opacity = '0'; }, 150);
 
@@ -666,7 +642,6 @@
       const saveCtx = saveCanvas.getContext('2d');
       saveCtx.scale(dpr, dpr);
 
-      // 1. カメラ映像の描画
       if (webcamEl.readyState === webcamEl.HAVE_ENOUGH_DATA) {
         const vW = webcamEl.videoWidth;
         const vH = webcamEl.videoHeight;
@@ -682,30 +657,18 @@
           dy = (logicalHeight - dh) / 2;
         }
 
-        saveCtx.drawImage(webcamEl, dx, dy, dw, dh);
-      }
-
-      // 2. ARパーティクル描画の合成
-      saveCtx.drawImage(arCanvas, 0, 0, logicalWidth, logicalHeight);
-
-      // 3. スライドイラストの合成（表示されている場合）
-      if (isSlideVisible && slideImg.complete && slideImg.naturalWidth !== 0) {
-        const imgRect = slideImg.getBoundingClientRect();
-        
         saveCtx.save();
-        saveCtx.translate(imgRect.left + imgRect.width / 2, imgRect.top + imgRect.height / 2);
-        saveCtx.scale(scale, scale);
-        saveCtx.drawImage(
-          slideImg, 
-          -imgRect.width / (2 * scale), 
-          -imgRect.height / (2 * scale), 
-          imgRect.width / scale, 
-          imgRect.height / scale
-        );
+        saveCtx.translate(logicalWidth / 2, logicalHeight / 2);
+        saveCtx.scale(currentZoom, currentZoom);
+        saveCtx.translate(-logicalWidth / 2, -logicalHeight / 2);
+        saveCtx.drawImage(webcamEl, dx, dy, dw, dh);
         saveCtx.restore();
       }
 
-      const jpgDataUrl = saveCanvas.toDataURL('image/jpeg', 0.88);
+      // AR描画の重ね合わせ
+      saveCtx.drawImage(arCanvas, 0, 0, logicalWidth, logicalHeight);
+
+      const jpgDataUrl = saveCanvas.toDataURL('image/jpeg', 0.85);
 
       // ローカル保存
       const link = document.createElement('a');
@@ -716,14 +679,19 @@
       // 共有アルバムに追加
       addPhotoToShared(jpgDataUrl);
 
-      const origText = statusEl.textContent;
-      statusEl.textContent = "SHARED & SAVED!";
-      setTimeout(() => { updateStatusText(); }, 2500);
+      statusEl.textContent = "SHARED & SAVED";
+      setTimeout(() => {
+        statusEl.textContent = useFrontCamera ? "FRONT CAM" : "BACK CAM";
+      }, 2500);
     });
 
-    // --- モーダル ＆ QRコード制御 ---
-    function openAlbumModal() { document.getElementById('album-modal').style.display = 'flex'; }
-    function closeAlbumModal() { document.getElementById('album-modal').style.display = 'none'; }
+    // --- モーダル制御 ＆ QRコード生成 ---
+    function openAlbumModal() {
+      document.getElementById('album-modal').style.display = 'flex';
+    }
+    function closeAlbumModal() {
+      document.getElementById('album-modal').style.display = 'none';
+    }
 
     let qrGenerated = false;
     function openQRModal() {
@@ -744,9 +712,11 @@
         qrGenerated = true;
       }
     }
-    function closeQRModal() { document.getElementById('qr-modal').style.display = 'none'; }
+    function closeQRModal() {
+      document.getElementById('qr-modal').style.display = 'none';
+    }
 
-    // 初期化起動
+    // 初期化
     initCamera();
 
   </script>
