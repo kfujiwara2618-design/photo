@@ -3,335 +3,295 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>Photo Harmony - Luxury Pro AR Camera & Shared Album</title>
+  <title>Photo Harmony - Live Vision & WebAR Studio</title>
   <style>
-    * {
-      box-sizing: border-box;
+    * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif; }
+    body, html {
+      margin: 0; padding: 0; width: 100vw; height: 100vh;
+      overflow: hidden; background: #08080a; color: #f7f3ed; touch-action: none;
     }
-    body {
-      margin: 0;
-      padding: 0;
-      overflow: hidden;
-      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Arial, sans-serif;
-      background: #000;
-      touch-action: none;
-      color: #f7f3ed;
-    }
+
+    /* 1. カメラ映像 */
     #webcam {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      object-fit: cover;
-      z-index: 1;
-      transform-origin: center center;
-      transition: transform 0.2s ease-out;
+      position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+      object-fit: cover; z-index: 1; transform-origin: center center;
     }
-    #ar-layer {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      z-index: 2;
-      pointer-events: none;
+
+    /* 2. ARレイヤー */
+    #ar-layer { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 2; pointer-events: none; }
+    #ar-canvas { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; }
+
+    /* 3. イラストスライド */
+    #slide-container {
+      position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+      display: flex; justify-content: center; align-items: center; z-index: 3; touch-action: none;
     }
-    #ar-canvas {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
+    #slide-img {
+      max-width: 75vw; max-height: 55vh; object-fit: contain;
+      transform-origin: center center; user-select: none; -webkit-user-drag: none;
+      filter: drop-shadow(0 12px 30px rgba(0,0,0,0.6)); transition: opacity 0.25s;
     }
+    #slide-img.hidden { opacity: 0; pointer-events: none; }
+
+    /* UIヘッダー */
     #top-controls {
-      position: absolute;
-      top: 15px;
-      left: 50%;
-      transform: translateX(-50%);
-      display: flex;
-      gap: 8px;
-      background: rgba(15, 15, 15, 0.75);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      padding: 6px 14px;
-      border-radius: 25px;
-      border: 1px solid rgba(228, 195, 139, 0.4);
-      z-index: 10;
-      box-shadow: 0 8px 25px rgba(0,0,0,0.6);
-      align-items: center;
+      position: fixed; top: 14px; left: 50%; transform: translateX(-50%);
+      display: flex; gap: 6px; background: rgba(12, 12, 16, 0.82);
+      backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+      padding: 6px 12px; border-radius: 30px; border: 1px solid rgba(228, 195, 139, 0.4);
+      z-index: 10; box-shadow: 0 8px 30px rgba(0,0,0,0.7); align-items: center;
     }
     .control-btn {
-      background: transparent;
-      border: 1px solid rgba(228, 195, 139, 0.5);
-      color: #f7f3ed;
-      padding: 5px 12px;
-      border-radius: 15px;
-      font-size: 11px;
-      letter-spacing: 0.05em;
-      cursor: pointer;
-      transition: all 0.2s;
-      outline: none;
-      display: flex;
-      align-items: center;
-      gap: 4px;
+      background: transparent; border: 1px solid rgba(228, 195, 139, 0.4);
+      color: #f7f3ed; padding: 6px 11px; border-radius: 18px; font-size: 10.5px;
+      letter-spacing: 0.05em; cursor: pointer; transition: all 0.2s; outline: none; white-space: nowrap;
     }
-    .control-btn:active {
-      transform: scale(0.95);
-      background: rgba(228, 195, 139, 0.2);
-    }
+    .control-btn:active { transform: scale(0.94); background: rgba(228, 195, 139, 0.25); }
+    .control-btn.active { background: linear-gradient(135deg, rgba(228,195,139,0.4), rgba(184,151,126,0.3)); border-color: #e4c38b; }
+    .control-btn.highlight { background: #e4c38b; color: #000; font-weight: bold; border-color: #fff; }
+
     #info-overlay {
-      position: absolute;
-      top: 65px;
-      left: 50%;
-      transform: translateX(-50%);
-      color: rgba(247, 243, 237, 0.85);
-      font-size: 10px;
-      letter-spacing: 0.08em;
-      z-index: 10;
-      pointer-events: none;
-      text-align: center;
-      text-shadow: 0 2px 4px rgba(0,0,0,0.9);
-      white-space: nowrap;
+      position: fixed; top: 62px; left: 50%; transform: translateX(-50%);
+      color: rgba(247, 243, 237, 0.85); font-size: 9.5px; letter-spacing: 0.06em;
+      z-index: 10; pointer-events: none; text-align: center; text-shadow: 0 2px 4px rgba(0,0,0,0.9);
     }
     #status { font-weight: 600; color: #e4c38b; }
-    
+
+    /* 下部フッター */
     #shutter-container {
-      position: absolute;
-      bottom: 35px;
-      left: 0;
-      width: 100%;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      gap: 24px;
-      z-index: 10;
+      position: fixed; bottom: 25px; left: 0; width: 100%;
+      display: flex; justify-content: center; align-items: center; gap: 20px; z-index: 10;
     }
     #shutter-btn {
-      width: 76px;
-      height: 76px;
-      border-radius: 50%;
+      width: 76px; height: 76px; border-radius: 50%;
       background: linear-gradient(135deg, #ffffff 0%, #d8c4b6 50%, #b8977e 100%);
-      border: 3px solid rgba(228, 195, 139, 0.95);
-      cursor: pointer;
-      box-shadow: 0 12px 35px rgba(0,0,0,0.7), inset 0 2px 6px rgba(255,255,255,0.95);
-      transition: transform 0.15s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.15s ease;
-      outline: none;
+      border: 3.5px solid rgba(228, 195, 139, 0.95); cursor: pointer;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.8), inset 0 2px 6px rgba(255,255,255,0.9);
+      transition: transform 0.15s cubic-bezier(0.2, 0.8, 0.2, 1); outline: none;
     }
-    #shutter-btn:active {
-      transform: scale(0.92);
-      box-shadow: 0 5px 15px rgba(0,0,0,0.5), inset 0 1px 3px rgba(0,0,0,0.4);
-    }
+    #shutter-btn:active { transform: scale(0.9); }
 
     .icon-btn {
-      width: 48px;
-      height: 48px;
-      border-radius: 50%;
-      background: rgba(15, 15, 15, 0.7);
-      border: 1px solid rgba(228, 195, 139, 0.5);
-      color: #e4c38b;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-      font-size: 18px;
-      position: relative;
+      width: 46px; height: 46px; border-radius: 50%;
+      background: rgba(12, 12, 16, 0.75); border: 1px solid rgba(228, 195, 139, 0.5);
+      color: #e4c38b; display: flex; align-items: center; justify-content: center;
+      cursor: pointer; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+      box-shadow: 0 4px 15px rgba(0,0,0,0.5); font-size: 18px; position: relative;
     }
-    .icon-btn:active {
-      transform: scale(0.92);
-    }
+    .icon-btn:active { transform: scale(0.92); }
     #badge {
-      position: absolute;
-      top: -4px;
-      right: -4px;
-      background: #e4c38b;
-      color: #000;
-      font-size: 10px;
-      font-weight: bold;
-      border-radius: 10px;
-      padding: 2px 6px;
-      display: none;
+      position: absolute; top: -4px; right: -4px; background: #e4c38b; color: #000;
+      font-size: 10px; font-weight: bold; border-radius: 10px; padding: 2px 6px; display: none;
     }
 
-    /* アルバムモーダル */
-    #album-modal, #qr-modal {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      background: rgba(10, 10, 12, 0.92);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      z-index: 100;
-      display: none;
-      flex-direction: column;
-      animation: fadeIn 0.25s ease-out;
+    /* 投稿時の入力UI（ニックネーム ＆ リアクション） */
+    #post-meta-bar {
+      position: fixed; bottom: 110px; left: 50%; transform: translateX(-50%);
+      display: flex; gap: 8px; background: rgba(12, 12, 16, 0.85); backdrop-filter: blur(16px);
+      padding: 8px 14px; border-radius: 20px; border: 1px solid rgba(228, 195, 139, 0.3);
+      z-index: 10; align-items: center; max-width: 90vw;
     }
-    @keyframes fadeIn {
-      from { opacity: 0; transform: scale(0.98); }
-      to { opacity: 1; transform: scale(1); }
+    #nick-input {
+      background: rgba(255,255,255,0.1); border: 1px solid rgba(228, 195, 139, 0.4);
+      color: #fff; padding: 4px 10px; border-radius: 12px; font-size: 11px; width: 90px; outline: none;
+    }
+    .stamp-selector { display: flex; gap: 6px; }
+    .stamp-btn {
+      background: none; border: none; font-size: 16px; cursor: pointer; opacity: 0.5; transition: transform 0.15s, opacity 0.15s;
+    }
+    .stamp-btn.selected { opacity: 1; transform: scale(1.3); }
+
+    /* モーダル枠構造 */
+    .modal {
+      position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+      background: rgba(8, 8, 12, 0.94); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+      z-index: 100; display: none; flex-direction: column;
     }
     .modal-header {
-      padding: 16px 20px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
+      padding: 16px 20px; display: flex; justify-content: space-between; align-items: center;
       border-bottom: 1px solid rgba(228, 195, 139, 0.2);
     }
-    .modal-title {
-      font-size: 16px;
-      font-weight: 600;
-      letter-spacing: 0.08em;
-      color: #e4c38b;
-    }
-    .close-btn {
-      background: none;
-      border: none;
-      color: #f7f3ed;
-      font-size: 24px;
-      cursor: pointer;
-    }
+    .modal-title { font-size: 14px; font-weight: 600; color: #e4c38b; letter-spacing: 0.08em; }
+    .close-btn { background: none; border: none; color: #f7f3ed; font-size: 22px; cursor: pointer; }
+
+    /* ギャラリーモーダル */
     .album-grid {
-      flex: 1;
-      overflow-y: auto;
-      padding: 15px;
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-      gap: 10px;
-      align-content: start;
+      flex: 1; overflow-y: auto; padding: 15px;
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 12px; align-content: start;
     }
     .album-item {
-      position: relative;
-      aspect-ratio: 1;
-      border-radius: 10px;
-      overflow: hidden;
-      border: 1px solid rgba(228, 195, 139, 0.3);
-      background: #111;
+      position: relative; aspect-ratio: 1; border-radius: 12px; overflow: hidden;
+      border: 1px solid rgba(228, 195, 139, 0.3); background: #111; cursor: pointer;
     }
-    .album-item img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
+    .album-item img { width: 100%; height: 100%; object-fit: cover; }
+    .album-item .item-info {
+      position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(transparent, rgba(0,0,0,0.85));
+      padding: 6px 8px; font-size: 9px; display: flex; justify-content: space-between; align-items: center;
     }
-    .album-item .time-tag {
-      position: absolute;
-      bottom: 4px;
-      right: 4px;
-      background: rgba(0,0,0,0.6);
-      font-size: 9px;
-      padding: 2px 4px;
-      border-radius: 4px;
-      color: #e4c38b;
+    .album-item .likes { color: #ff6b81; font-weight: bold; }
+
+    /* SNSシェア Modal */
+    #share-modal .share-card {
+      flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; text-align: center;
     }
-    .empty-state {
-      grid-column: 1 / -1;
-      text-align: center;
-      color: #888;
-      font-size: 13px;
-      margin-top: 60px;
+    #share-preview { max-width: 80%; max-height: 40vh; border-radius: 12px; border: 1px solid rgba(228, 195, 139, 0.4); margin-bottom: 16px; }
+    .share-btns { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; margin-top: 10px; }
+    .social-btn {
+      padding: 10px 18px; border-radius: 20px; border: none; font-size: 12px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 6px;
     }
-    
-    /* QRコード表示モーダル */
-    .qr-container {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
-      text-align: center;
+    .btn-x { background: #000; color: #fff; border: 1px solid rgba(255,255,255,0.3); }
+    .btn-line { background: #06C755; color: #fff; }
+    .btn-dl { background: linear-gradient(135deg, #e4c38b, #b8977e); color: #000; }
+
+    /* 会場スクリーン（ライブスライドショーモード） */
+    #screen-modal { background: #000; }
+    .screen-stage {
+      position: relative; flex: 1; width: 100%; height: 100%; display: flex;
+      justify-content: center; align-items: center; overflow: hidden;
     }
-    #qrcode {
-      background: #fff;
-      padding: 16px;
-      border-radius: 16px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-      margin-bottom: 20px;
+    #screen-img {
+      max-width: 90vw; max-height: 85vh; object-fit: contain;
+      border-radius: 12px; box-shadow: 0 0 50px rgba(228, 195, 139, 0.2);
+      animation: zoomFade 6s infinite alternate ease-in-out;
     }
-    .qr-desc {
-      font-size: 13px;
-      color: #ccc;
-      line-height: 1.6;
-      max-width: 280px;
+    @keyframes zoomFade {
+      0% { transform: scale(1); filter: brightness(1); }
+      100% { transform: scale(1.04); filter: brightness(1.08); }
+    }
+    .screen-overlay-info {
+      position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%);
+      background: rgba(12, 12, 16, 0.85); backdrop-filter: blur(16px);
+      padding: 12px 28px; border-radius: 30px; border: 1px solid rgba(228, 195, 139, 0.5);
+      text-align: center; font-size: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+    }
+    .screen-user { font-weight: bold; color: #e4c38b; margin-right: 8px; }
+    .screen-badge {
+      position: absolute; top: 30px; left: 30px; background: rgba(228,195,139,0.2);
+      border: 1px solid #e4c38b; color: #e4c38b; padding: 6px 14px; border-radius: 20px; font-size: 12px; letter-spacing: 0.1em;
     }
 
-    /* フラッシュエフェクト */
-    #flash {
-      position: absolute;
-      top: 0; left: 0; width: 100vw; height: 100vh;
-      background: #fff;
-      opacity: 0;
-      pointer-events: none;
-      z-index: 50;
-      transition: opacity 0.1s ease-out;
+    /* 新着通知エフェクト */
+    #toast-notification {
+      position: fixed; top: 100px; left: 50%; transform: translateX(-50%) translateY(-20px);
+      background: linear-gradient(135deg, #e4c38b, #b8977e); color: #000; font-weight: bold;
+      padding: 10px 22px; border-radius: 25px; font-size: 12px; z-index: 200; opacity: 0;
+      pointer-events: none; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      box-shadow: 0 10px 25px rgba(228,195,139,0.4);
     }
+    #toast-notification.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    /* QR modal */
+    .qr-container { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; text-align: center; }
+    #qrcode { background: #fff; padding: 16px; border-radius: 16px; margin-bottom: 20px; }
+
+    #flash { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #fff; opacity: 0; pointer-events: none; z-index: 50; transition: opacity 0.15s ease-out; }
   </style>
+
+  <!-- Face-api.js & QR Code Generator -->
   <script defer src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api/dist/face-api.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
 <body>
 
+  <!-- カメラ ＆ AR ＆ イラストスライド -->
   <video id="webcam" autoplay playsinline muted></video>
+  <div id="ar-layer"><canvas id="ar-canvas"></canvas></div>
+  <div id="slide-container"><img id="slide-img" src="1.jpg" alt="スライド"></div>
 
+  <!-- 上部UIコントロール -->
   <div id="top-controls">
     <button class="control-btn" id="effect-btn" onclick="toggleEffectPower()">FX: Mid</button>
-    <div style="width: 1px; height: 16px; background: rgba(228,195,139,0.3); margin: 0 2px;"></div>
+    <button class="control-btn" id="slide-toggle-btn" onclick="toggleSlideShow()">スライド: ON</button>
     <button class="control-btn" onclick="switchCamera()">Cam ⟳</button>
+    <div style="width: 1px; height: 14px; background: rgba(228,195,139,0.3); margin: 0 2px;"></div>
+    <button class="control-btn highlight" onclick="openScreenModal()">🖥️ Live Screen</button>
   </div>
 
   <div id="info-overlay">
-    PHOTO HARMONY | <span id="status">MODEL LOADING...</span> | リアルタイム共有
-  </div>
-
-  <div id="ar-layer">
-    <canvas id="ar-canvas"></canvas>
+    PHOTO HARMONY | <span id="status">カメラ起動中...</span>
   </div>
 
   <div id="flash"></div>
+  <div id="toast-notification">✨ 新しい写真が同期されました！</div>
 
+  <!-- 投稿メタ情報バー（ニックネーム / スタンプ選択） -->
+  <div id="post-meta-bar">
+    <input type="text" id="nick-input" placeholder="名前 (Guest)" maxlength="10">
+    <div class="stamp-selector">
+      <button class="stamp-btn selected" onclick="selectStamp(this, '❤️')">❤️</button>
+      <button class="stamp-btn" onclick="selectStamp(this, '🎉')">🎉</button>
+      <button class="stamp-btn" onclick="selectStamp(this, '👏')">👏</button>
+      <button class="stamp-btn" onclick="selectStamp(this, '✨')">✨</button>
+    </div>
+  </div>
+
+  <!-- 下部操作バー -->
   <div id="shutter-container">
-    <button class="icon-btn" onclick="openQRModal()" title="共有用QRを表示">
-      <span>📱</span>
-    </button>
-
+    <button class="icon-btn" onclick="openQRModal()" title="共有用QR">📱</button>
     <button id="shutter-btn" title="Capture"></button>
-
-    <button class="icon-btn" onclick="openAlbumModal()" title="共有アルバムを開く">
-      <span>🖼️</span>
-      <span id="badge">0</span>
+    <button class="icon-btn" onclick="openAlbumModal()" title="アルバム">
+      <span>🖼️</span><span id="badge">0</span>
     </button>
   </div>
 
-  <!-- 共有アルバムモーダル -->
-  <div id="album-modal">
+  <!-- 1. 共有アルバムモーダル -->
+  <div class="modal" id="album-modal">
     <div class="modal-header">
-      <div class="modal-title">PHOTO HARMONY ALBUM</div>
-      <button class="close-btn" onclick="closeAlbumModal()">✕</button>
+      <div class="modal-title">PHOTO HARMONY GALLERY</div>
+      <button class="close-btn" onclick="closeModal('album-modal')">✕</button>
     </div>
-    <div class="album-grid" id="album-grid">
-      <div class="empty-state">まだ写真がありません。<br>シャッターを押して投稿しましょう！</div>
+    <div class="album-grid" id="album-grid"></div>
+  </div>
+
+  <!-- 2. SNSシェアモーダル -->
+  <div class="modal" id="share-modal">
+    <div class="modal-header">
+      <div class="modal-title">共有＆SNSにシェア</div>
+      <button class="close-btn" onclick="closeModal('share-modal')">✕</button>
+    </div>
+    <div class="share-card">
+      <img id="share-preview" src="" alt="Preview">
+      <p style="font-size: 12px; color: #e4c38b; margin-bottom: 12px;">会場スクリーン＆共有アルバムに投稿されました！</p>
+      <div class="share-btns">
+        <button class="social-btn btn-x" onclick="shareToX()">𝕏 に投稿</button>
+        <button class="social-btn btn-line" onclick="shareToLINE()">LINE 送信</button>
+        <button class="social-btn btn-dl" onclick="downloadCurrentPhoto()">保存</button>
+      </div>
     </div>
   </div>
 
-  <!-- QRコード表示モーダル -->
-  <div id="qr-modal">
+  <!-- 3. 会場ライブスクリーンモーダル -->
+  <div class="modal" id="screen-modal">
+    <div class="modal-header" style="z-index: 10;">
+      <div class="modal-title">LIVE SCREEN MODE</div>
+      <button class="close-btn" onclick="closeModal('screen-modal')">✕</button>
+    </div>
+    <div class="screen-stage">
+      <div class="screen-badge">● LIVE STREAM</div>
+      <img id="screen-img" src="1.jpg" alt="Live Screen">
+      <div class="screen-overlay-info" id="screen-info">
+        <span class="screen-user" id="screen-user">Photo Harmony</span>
+        <span id="screen-stamp">✨</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. QRコードモーダル -->
+  <div class="modal" id="qr-modal">
     <div class="modal-header">
       <div class="modal-title">同じQRでカメラ・共有に参加</div>
-      <button class="close-btn" onclick="closeQRModal()">✕</button>
+      <button class="close-btn" onclick="closeModal('qr-modal')">✕</button>
     </div>
     <div class="qr-container">
       <div id="qrcode"></div>
-      <div class="qr-desc">
-        このQRコードを他の人のスマホカメラで読み込むと、同じARカメラが起動し撮影した写真をリアルタイム共有できます。
+      <div style="font-size: 12px; color: #ccc; line-height: 1.6; max-width: 280px;">
+        スマホのカメラで読み込むと、同じARカメラ＆リアルタイム共有アルバムに参加できます。
       </div>
     </div>
   </div>
 
   <script>
+    // 定数・状態変数
     const webcamEl = document.getElementById('webcam');
     const statusEl = document.getElementById('status');
     const arCanvas = document.getElementById('ar-canvas');
@@ -339,386 +299,396 @@
     const shutterBtn = document.getElementById('shutter-btn');
     const badgeEl = document.getElementById('badge');
     const flashEl = document.getElementById('flash');
+    const toastEl = document.getElementById('toast-notification');
 
-    let currentZoom = 1;
-    const MIN_ZOOM = 1;
-    const MAX_ZOOM = 10;
+    const slideContainer = document.getElementById('slide-container');
+    const slideImg = document.getElementById('slide-img');
+
+    const images = ['1.jpg','2.jpg','3.jpg','4.jpg','5.jpg','6.jpg','7.jpg','8.jpg','9.jpg','10.jpg'];
+    let currentIndex = 0;
+    let isSlideVisible = true;
+    let selectedStamp = '❤️';
+    let lastCapturedDataUrl = '';
+
+    // イベント用ハッシュタグ
+    const HASHTAG = "#PhotoHarmony #WebAR #LiveStudio";
+
+    // 1. カメラ機能
     let useFrontCamera = false;
     let currentStream = null;
     let faces = [];
 
-    // --- リアルタイム共有用 (BroadcastChannel / LocalStorage) ---
-    const sharedPhotos = [];
+    async function initCamera() {
+      if (currentStream) currentStream.getTracks().forEach(t => t.stop());
+      try {
+        const constraints = {
+          video: { facingMode: useFrontCamera ? "user" : { exact: "environment" }, width: { ideal: 1920 }, height: { ideal: 1080 } },
+          audio: false
+        };
+        currentStream = await navigator.mediaDevices.getUserMedia(constraints);
+        webcamEl.srcObject = currentStream;
+        webcamEl.onloadedmetadata = () => { startFaceDetection(); updateStatusText(); };
+      } catch (err) {
+        try {
+          currentStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+          webcamEl.srcObject = currentStream;
+          webcamEl.onloadedmetadata = () => { startFaceDetection(); updateStatusText(); };
+        } catch (e) {
+          statusEl.textContent = "カメラ接続エラー";
+        }
+      }
+    }
+
+    function switchCamera() { useFrontCamera = !useFrontCamera; initCamera(); }
+    function updateStatusText() {
+      const mode = useFrontCamera ? "FRONT" : "BACK";
+      statusEl.textContent = `${mode} CAM | イラスト (${currentIndex + 1}/${images.length})`;
+    }
+
+    // 2. リアルタイム共有 (BroadcastChannel + LocalStorage)
+    const sharedPhotos = JSON.parse(localStorage.getItem('ph_shared_photos') || '[]');
     const broadcastChannel = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('photo_harmony_sync') : null;
 
     if (broadcastChannel) {
-      broadcastChannel.onmessage = (event) => {
-        if (event.data && event.data.type === 'NEW_PHOTO') {
-          sharedPhotos.unshift(event.data.photo);
-          updateAlbumView();
-          showBadgeNotification();
+      broadcastChannel.onmessage = (e) => {
+        if (e.data && e.data.type === 'NEW_PHOTO') {
+          receivePhoto(e.data.photo, false);
+        } else if (e.data && e.data.type === 'LIKE') {
+          updateLikes(e.data.id, false);
         }
       };
     }
 
     function addPhotoToShared(dataUrl) {
+      const nick = document.getElementById('nick-input').value.trim() || 'Guest';
       const photoObj = {
         id: Date.now(),
         dataUrl: dataUrl,
+        user: nick,
+        stamp: selectedStamp,
+        likes: 0,
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       };
-      sharedPhotos.unshift(photoObj);
-      updateAlbumView();
+      receivePhoto(photoObj, true);
+    }
 
-      if (broadcastChannel) {
+    function receivePhoto(photoObj, isSelf) {
+      sharedPhotos.unshift(photoObj);
+      if (sharedPhotos.length > 50) sharedPhotos.pop(); // 最大50枚保持
+      try { localStorage.setItem('ph_shared_photos', JSON.stringify(sharedPhotos)); } catch(e){}
+
+      updateAlbumView();
+      showToastNotification(isSelf ? "アルバムに送信されました！" : `✨ ${photoObj.user} さんが写真を投稿！`);
+
+      if (isSelf && broadcastChannel) {
         broadcastChannel.postMessage({ type: 'NEW_PHOTO', photo: photoObj });
+      }
+
+      // ライブスクリーン表示中なら更新
+      if (isLiveScreenActive) {
+        showScreenPhoto(photoObj);
       }
     }
 
+    function showToastNotification(msg) {
+      toastEl.textContent = msg;
+      toastEl.classList.add('show');
+      setTimeout(() => toastEl.classList.remove('show'), 3000);
+    }
+
+    // 3. アルバム＆インタラクティブギャラリー
     function updateAlbumView() {
       const grid = document.getElementById('album-grid');
       if (sharedPhotos.length === 0) {
-        grid.innerHTML = '<div class="empty-state">まだ写真がありません。<br>シャッターを押して投稿しましょう！</div>';
+        grid.innerHTML = '<div style="grid-column: 1/-1; text-align:center; color:#777; font-size:12px; margin-top:50px;">写真が投稿されていません</div>';
         badgeEl.style.display = 'none';
         return;
       }
-
       badgeEl.textContent = sharedPhotos.length;
       badgeEl.style.display = 'block';
 
       grid.innerHTML = sharedPhotos.map(p => `
-        <div class="album-item" onclick="downloadImage('${p.dataUrl}')">
+        <div class="album-item" onclick="openShareModal('${p.dataUrl}')">
           <img src="${p.dataUrl}" alt="Photo">
-          <div class="time-tag">${p.time}</div>
+          <div class="item-info">
+            <span>${p.stamp} ${p.user}</span>
+            <span class="likes" onclick="event.stopPropagation(); likePhoto(${p.id})">❤️ ${p.likes}</span>
+          </div>
         </div>
       `).join('');
     }
 
-    function downloadImage(dataUrl) {
-      const link = document.createElement('a');
-      link.download = 'photo_harmony_' + Date.now() + '.jpg';
-      link.href = dataUrl;
-      link.click();
+    function likePhoto(id) {
+      updateLikes(id, true);
     }
 
-    function showBadgeNotification() {
-      badgeEl.style.transform = 'scale(1.4)';
-      setTimeout(() => { badgeEl.style.transform = 'scale(1)'; }, 200);
-    }
-
-    // --- カメラ制御 ---
-    function applyZoom(level) {
-      currentZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, level));
-      webcamEl.style.transform = `scale(${currentZoom})`;
-    }
-
-    async function initCamera() {
-      if (currentStream) {
-        currentStream.getTracks().forEach(track => track.stop());
-      }
-      try {
-        const constraints = {
-          video: {
-            facingMode: useFrontCamera ? "user" : { exact: "environment" },
-            width: { ideal: 1920 },
-            height: { ideal: 1080 }
-          },
-          audio: false
-        };
-        currentStream = await navigator.mediaDevices.getUserMedia(constraints);
-        webcamEl.srcObject = currentStream;
-        
-        webcamEl.onloadedmetadata = () => {
-          startFaceDetection();
-          statusEl.textContent = useFrontCamera ? "FRONT CAM" : "BACK CAM";
-        };
-      } catch (err) {
-        try {
-          const fallbackConstraints = { video: true, audio: false };
-          currentStream = await navigator.mediaDevices.getUserMedia(fallbackConstraints);
-          webcamEl.srcObject = currentStream;
-          
-          webcamEl.onloadedmetadata = () => {
-            startFaceDetection();
-            statusEl.textContent = "READY";
-          };
-        } catch (e) {
-          statusEl.textContent = "CAMERA ERROR";
-          console.error(e);
+    function updateLikes(id, isSelf) {
+      const item = sharedPhotos.find(p => p.id === id);
+      if (item) {
+        item.likes += 1;
+        try { localStorage.setItem('ph_shared_photos', JSON.stringify(sharedPhotos)); } catch(e){}
+        updateAlbumView();
+        if (isSelf && broadcastChannel) {
+          broadcastChannel.postMessage({ type: 'LIKE', id: id });
         }
       }
     }
 
-    function switchCamera() {
-      useFrontCamera = !useFrontCamera;
-      initCamera();
+    // 4. 会場ライブスクリーンモード
+    let isLiveScreenActive = false;
+    let liveScreenTimer = null;
+    let liveScreenIndex = 0;
+
+    function openScreenModal() {
+      document.getElementById('screen-modal').style.display = 'flex';
+      isLiveScreenActive = true;
+      startLiveScreenLoop();
     }
 
-    // --- Face-api.js ---
+    function startLiveScreenLoop() {
+      if (liveScreenTimer) clearInterval(liveScreenTimer);
+      
+      const updateDisplay = () => {
+        if (sharedPhotos.length > 0) {
+          const photo = sharedPhotos[liveScreenIndex % sharedPhotos.length];
+          showScreenPhoto(photo);
+          liveScreenIndex++;
+        }
+      };
+
+      updateDisplay();
+      liveScreenTimer = setInterval(updateDisplay, 5000); // 5秒ごとに切替
+    }
+
+    function showScreenPhoto(photo) {
+      const screenImg = document.getElementById('screen-img');
+      const screenUser = document.getElementById('screen-user');
+      const screenStamp = document.getElementById('screen-stamp');
+
+      screenImg.style.opacity = '0';
+      setTimeout(() => {
+        screenImg.src = photo.dataUrl;
+        screenUser.textContent = photo.user;
+        screenStamp.textContent = `${photo.stamp} (❤️ ${photo.likes})`;
+        screenImg.style.opacity = '1';
+      }, 300);
+    }
+
+    // 5. Face-api.js (顔回避)
     async function loadModels() {
       const MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model/';
       await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
-      statusEl.textContent = "MODEL LOADED";
     }
 
     async function startFaceDetection() {
-      if (!faceapi.nets.tinyFaceDetector.params) {
-        await loadModels();
-      }
+      if (!faceapi.nets.tinyFaceDetector.params) await loadModels();
       detectFaces();
     }
 
     async function detectFaces() {
       if (webcamEl.paused || webcamEl.ended || !faceapi.nets.tinyFaceDetector.params) {
-        requestAnimationFrame(detectFaces);
-        return;
+        requestAnimationFrame(detectFaces); return;
       }
-
       const detections = await faceapi.detectAllFaces(webcamEl, new faceapi.TinyFaceDetectorOptions());
       const displaySize = { width: arCanvas.width / dpr, height: arCanvas.height / dpr };
       faces = faceapi.resizeResults(detections, displaySize);
-      
       requestAnimationFrame(detectFaces);
     }
 
-    // --- ピンチズーム ---
-    let initialPinchDistance = null;
-    let zoomStartValue = 1;
+    // 6. タッチ操作 (イラストスライド)
+    let scale = 1, posX = 0, posY = 0;
+    let startX = 0, startY = 0, initialDistance = null, initialScale = 1;
+    let isDragging = false, touchStartTime = 0, hasMoved = false;
 
-    function getPinchDistance(touches) {
-      if (touches.length < 2) return 0;
-      const dx = touches[0].clientX - touches[1].clientX;
-      const dy = touches[0].clientY - touches[1].clientY;
-      return Math.sqrt(dx * dx + dy * dy);
-    }
-
-    window.addEventListener('touchstart', (e) => {
-      if (e.touches.length === 2) {
-        initialPinchDistance = getPinchDistance(e.touches);
-        zoomStartValue = currentZoom;
-        e.preventDefault();
+    slideContainer.addEventListener('touchstart', (e) => {
+      touchStartTime = Date.now(); hasMoved = false;
+      if (e.touches.length === 1) {
+        isDragging = true; startX = e.touches[0].clientX - posX; startY = e.touches[0].clientY - posY;
+      } else if (e.touches.length === 2) {
+        isDragging = false;
+        initialDistance = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+        initialScale = scale;
       }
     }, { passive: false });
 
-    window.addEventListener('touchmove', (e) => {
-      if (e.touches.length === 2 && initialPinchDistance !== null) {
-        const currentDistance = getPinchDistance(e.touches);
-        if (initialPinchDistance > 0) {
-          const distanceRatio = currentDistance / initialPinchDistance;
-          const newZoom = zoomStartValue * distanceRatio;
-          applyZoom(newZoom);
-        }
-        e.preventDefault();
+    slideContainer.addEventListener('touchmove', (e) => {
+      e.preventDefault(); hasMoved = true;
+      if (e.touches.length === 1 && isDragging) {
+        posX = e.touches[0].clientX - startX; posY = e.touches[0].clientY - startY;
+        updateTransform();
+      } else if (e.touches.length === 2 && initialDistance > 0) {
+        const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+        scale = Math.max(0.2, Math.min(5.0, initialScale * (dist / initialDistance)));
+        updateTransform();
       }
     }, { passive: false });
 
-    window.addEventListener('touchend', (e) => {
-      if (e.touches.length < 2) {
-        initialPinchDistance = null;
+    slideContainer.addEventListener('touchend', (e) => {
+      if (!hasMoved && (Date.now() - touchStartTime < 300) && isSlideVisible) {
+        currentIndex = (currentIndex + 1) % images.length;
+        slideImg.src = images[currentIndex];
+        updateStatusText();
       }
+      if (e.touches.length === 0) { isDragging = false; initialDistance = null; }
     });
 
-    // --- Canvas Resize ---
-    let dpr = window.devicePixelRatio || 1;
+    function updateTransform() {
+      slideImg.style.transform = `translate(${posX}px, ${posY}px) scale(${scale})`;
+    }
 
+    function toggleSlideShow() {
+      isSlideVisible = !isSlideVisible;
+      const btn = document.getElementById('slide-toggle-btn');
+      slideImg.classList.toggle('hidden', !isSlideVisible);
+      btn.textContent = `スライド: ${isSlideVisible ? 'ON' : 'OFF'}`;
+      btn.classList.toggle('active', !isSlideVisible);
+    }
+
+    // 7. AR Canvas Render Loop
+    let dpr = window.devicePixelRatio || 1;
     function resizeCanvas() {
       dpr = window.devicePixelRatio || 1;
-      const width = window.innerWidth;
-      const height = window.innerHeight;
-
-      arCanvas.width = width * dpr;
-      arCanvas.height = height * dpr;
-      arCanvas.style.width = width + 'px';
-      arCanvas.style.height = height + 'px';
+      arCanvas.width = window.innerWidth * dpr;
+      arCanvas.height = window.innerHeight * dpr;
+      arCanvas.style.width = window.innerWidth + 'px';
+      arCanvas.style.height = window.innerHeight + 'px';
       ctx.scale(dpr, dpr);
     }
     window.addEventListener('resize', resizeCanvas);
     resizeCanvas();
 
-    // --- エフェクトレベル ---
     let effectPowerLevel = 2;
     function toggleEffectPower() {
       effectPowerLevel = (effectPowerLevel % 3) + 1;
-      const names = { 1: 'Low', 2: 'Mid', 3: 'High' };
-      document.getElementById('effect-btn').textContent = `FX: ${names[effectPowerLevel]}`;
+      document.getElementById('effect-btn').textContent = `FX: ${['', 'Low', 'Mid', 'High'][effectPowerLevel]}`;
     }
 
-    // --- パーティクルシステム ---
-    const particles = [];
-    const pastelColors = ['#FFB6C1', '#FFD1DC', '#FFCCFF', '#E6E6FA', '#D8BFD8', '#B0E0E6', '#98FB98', '#FFFFE0'];
-
-    for (let i = 0; i < 100; i++) {
-      particles.push({
-        type: 'heart',
-        x: Math.random() * window.innerWidth,
-        y: Math.random() * window.innerHeight,
-        size: Math.random() * 20 + 8,
-        speedY: Math.random() * 2.0 + 1.0,
-        speedX: (Math.random() - 0.5) * 1.5,
-        opacity: Math.random() * 0.5 + 0.5,
-        color: pastelColors[Math.floor(Math.random() * pastelColors.length)],
-        onFace: false
-      });
-    }
+    const particles = Array.from({ length: 80 }, () => ({
+      x: Math.random() * window.innerWidth, y: Math.random() * window.innerHeight,
+      size: Math.random() * 18 + 8, speedY: Math.random() * 2 + 1, speedX: (Math.random() - 0.5) * 1.5,
+      opacity: Math.random() * 0.5 + 0.5,
+      color: ['#FFB6C1', '#FFD1DC', '#E6E6FA', '#D8BFD8', '#FFFFE0'][Math.floor(Math.random() * 5)],
+      onFace: false
+    }));
 
     let timeCount = 0;
-
-    function drawHeart(ctx, x, y, size, color, opacity, onFace) {
-      ctx.save();
-      ctx.translate(x, y);
-      ctx.rotate((timeCount * 0.2) + x * 0.01);
-      
-      if (onFace) {
-        ctx.globalAlpha = opacity * 0.1;
-      } else {
-        ctx.globalAlpha = opacity;
-      }
-      
-      ctx.fillStyle = color;
+    function drawHeart(x, y, size, color, opacity, onFace) {
+      ctx.save(); ctx.translate(x, y); ctx.rotate((timeCount * 0.2) + x * 0.01);
+      ctx.globalAlpha = onFace ? opacity * 0.08 : opacity; ctx.fillStyle = color;
       ctx.beginPath();
-      const width = size;
-      const height = size * 0.9;
-      ctx.moveTo(0, height * 0.3);
-      ctx.bezierCurveTo(0, 0, -width * 0.5, 0, -width * 0.5, height * 0.3);
-      ctx.bezierCurveTo(-width * 0.5, height * 0.6, -width * 0.2, height * 0.8, 0, height);
-      ctx.bezierCurveTo(width * 0.2, height * 0.8, width * 0.5, height * 0.6, width * 0.5, height * 0.3);
-      ctx.bezierCurveTo(width * 0.5, 0, 0, 0, 0, height * 0.3);
-      ctx.fill();
-      ctx.restore();
+      const w = size, h = size * 0.9;
+      ctx.moveTo(0, h * 0.3);
+      ctx.bezierCurveTo(0, 0, -w * 0.5, 0, -w * 0.5, h * 0.3);
+      ctx.bezierCurveTo(-w * 0.5, h * 0.6, -w * 0.2, h * 0.8, 0, h);
+      ctx.bezierCurveTo(w * 0.2, h * 0.8, w * 0.5, h * 0.6, w * 0.5, h * 0.3);
+      ctx.bezierCurveTo(w * 0.5, 0, 0, 0, 0, h * 0.3);
+      ctx.fill(); ctx.restore();
     }
 
     function renderLoop() {
       timeCount += 0.016;
-      const logicalWidth = window.innerWidth;
-      const logicalHeight = window.innerHeight;
+      const w = window.innerWidth, h = window.innerHeight;
+      ctx.clearRect(0, 0, w, h);
+      const mult = effectPowerLevel === 1 ? 0.4 : (effectPowerLevel === 2 ? 0.8 : 1.3);
 
-      ctx.clearRect(0, 0, logicalWidth, logicalHeight);
-
-      const activeCount = effectPowerLevel === 1 ? 0.4 : (effectPowerLevel === 2 ? 0.7 : 1.2);
-
-      particles.forEach((p) => {
-        p.y += p.speedY * activeCount;
-        p.x += p.speedX * activeCount * 0.5;
-
-        if (p.y > logicalHeight + 40 || p.x < -40 || p.x > logicalWidth + 40) {
-          p.y = -40;
-          p.x = Math.random() * logicalWidth;
-          p.color = pastelColors[Math.floor(Math.random() * pastelColors.length)];
-        }
-
-        p.onFace = false;
+      particles.forEach(p => {
+        p.y += p.speedY * mult; p.x += p.speedX * mult;
+        if (p.y > h + 30 || p.x < -30 || p.x > w + 30) { p.y = -30; p.x = Math.random() * w; }
         
-        if (faces.length > 0) {
-          for (const face of faces) {
-            const { x, y, width, height } = face.box;
-            if (p.x > x && p.x < x + width && p.y > y && p.y < y + height) {
-              p.onFace = true;
-              break;
-            }
-          }
-        }
-
-        if (effectPowerLevel > 0) {
-          drawHeart(ctx, p.x, p.y, p.size, p.color, p.opacity, p.onFace);
-        }
+        p.onFace = faces.some(f => p.x > f.box.x && p.x < f.box.x + f.box.width && p.y > f.box.y && p.y < f.box.y + f.box.height);
+        if (effectPowerLevel > 0) drawHeart(p.x, p.y, p.size, p.color, p.opacity, p.onFace);
       });
-
       requestAnimationFrame(renderLoop);
     }
     renderLoop();
 
-    // --- シャッター ＆ 共有追加 ---
-    shutterBtn.addEventListener('click', () => {
-      // フラッシュ演出
+    // 8. 撮影・合成処理
+    shutterBtn.addEventListener('click', async () => {
       flashEl.style.opacity = '0.8';
-      setTimeout(() => { flashEl.style.opacity = '0'; }, 150);
+      setTimeout(() => flashEl.style.opacity = '0', 150);
 
       const saveCanvas = document.createElement('canvas');
-      const logicalWidth = window.innerWidth;
-      const logicalHeight = window.innerHeight;
-      
-      saveCanvas.width = logicalWidth * dpr;
-      saveCanvas.height = logicalHeight * dpr;
-      const saveCtx = saveCanvas.getContext('2d');
-      saveCtx.scale(dpr, dpr);
+      const lw = window.innerWidth, lh = window.innerHeight;
+      saveCanvas.width = lw * dpr; saveCanvas.height = lh * dpr;
+      const sCtx = saveCanvas.getContext('2d');
+      sCtx.scale(dpr, dpr);
 
+      // 背景カメラ
       if (webcamEl.readyState === webcamEl.HAVE_ENOUGH_DATA) {
-        const vW = webcamEl.videoWidth;
-        const vH = webcamEl.videoHeight;
-        const vRatio = vW / vH;
-        const cRatio = logicalWidth / logicalHeight;
-
-        let dw = logicalWidth, dh = logicalHeight, dx = 0, dy = 0;
-        if (vRatio > cRatio) {
-          dw = logicalHeight * vRatio;
-          dx = (logicalWidth - dw) / 2;
-        } else {
-          dh = logicalWidth / vRatio;
-          dy = (logicalHeight - dh) / 2;
-        }
-
-        saveCtx.save();
-        saveCtx.translate(logicalWidth / 2, logicalHeight / 2);
-        saveCtx.scale(currentZoom, currentZoom);
-        saveCtx.translate(-logicalWidth / 2, -logicalHeight / 2);
-        saveCtx.drawImage(webcamEl, dx, dy, dw, dh);
-        saveCtx.restore();
+        const vR = webcamEl.videoWidth / webcamEl.videoHeight, cR = lw / lh;
+        let dw = lw, dh = lh, dx = 0, dy = 0;
+        if (vR > cR) { dw = lh * vR; dx = (lw - dw) / 2; } else { dh = lw / vR; dy = (lh - dh) / 2; }
+        sCtx.drawImage(webcamEl, dx, dy, dw, dh);
       }
 
-      // AR描画の重ね合わせ
-      saveCtx.drawImage(arCanvas, 0, 0, logicalWidth, logicalHeight);
+      // AR
+      sCtx.drawImage(arCanvas, 0, 0, lw, lh);
 
-      const jpgDataUrl = saveCanvas.toDataURL('image/jpeg', 0.85);
+      // スライドイラスト
+      if (isSlideVisible && slideImg.complete && slideImg.naturalWidth !== 0) {
+        const rect = slideImg.getBoundingClientRect();
+        sCtx.save();
+        sCtx.translate(rect.left + rect.width / 2, rect.top + rect.height / 2);
+        sCtx.scale(scale, scale);
+        sCtx.drawImage(slideImg, -rect.width / (2 * scale), -rect.height / (2 * scale), rect.width / scale, rect.height / scale);
+        sCtx.restore();
+      }
 
-      // ローカル保存
-      const link = document.createElement('a');
-      link.download = 'photo_harmony_' + Date.now() + '.jpg';
-      link.href = jpgDataUrl;
-      link.click();
-
-      // 共有アルバムに追加
-      addPhotoToShared(jpgDataUrl);
-
-      statusEl.textContent = "SHARED & SAVED";
-      setTimeout(() => {
-        statusEl.textContent = useFrontCamera ? "FRONT CAM" : "BACK CAM";
-      }, 2500);
+      lastCapturedDataUrl = saveCanvas.toDataURL('image/jpeg', 0.88);
+      addPhotoToShared(lastCapturedDataUrl);
+      openShareModal(lastCapturedDataUrl);
     });
 
-    // --- モーダル制御 ＆ QRコード生成 ---
-    function openAlbumModal() {
-      document.getElementById('album-modal').style.display = 'flex';
+    // 9. SNS共有・モーダル操作
+    function selectStamp(btn, stamp) {
+      document.querySelectorAll('.stamp-btn').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+      selectedStamp = stamp;
     }
-    function closeAlbumModal() {
-      document.getElementById('album-modal').style.display = 'none';
+
+    function openShareModal(dataUrl) {
+      document.getElementById('share-preview').src = dataUrl;
+      document.getElementById('share-modal').style.display = 'flex';
     }
+
+    function closeModal(id) {
+      document.getElementById(id).style.display = 'none';
+      if (id === 'screen-modal') {
+        isLiveScreenActive = false;
+        if (liveScreenTimer) clearInterval(liveScreenTimer);
+      }
+    }
+
+    function openAlbumModal() { updateAlbumView(); document.getElementById('album-modal').style.display = 'flex'; }
 
     let qrGenerated = false;
     function openQRModal() {
-      const modal = document.getElementById('qr-modal');
-      modal.style.display = 'flex';
-
+      document.getElementById('qr-modal').style.display = 'flex';
       if (!qrGenerated) {
-        const qrContainer = document.getElementById('qrcode');
-        qrContainer.innerHTML = '';
-        new QRCode(qrContainer, {
-          text: window.location.href,
-          width: 180,
-          height: 180,
-          colorDark: "#111111",
-          colorLight: "#ffffff",
-          correctLevel: QRCode.CorrectLevel.H
-        });
+        new QRCode(document.getElementById('qrcode'), { text: window.location.href, width: 170, height: 170 });
         qrGenerated = true;
       }
     }
-    function closeQRModal() {
-      document.getElementById('qr-modal').style.display = 'none';
+
+    function shareToX() {
+      const text = encodeURIComponent(`Photo Harmonyで特別な写真を撮影しました！✨ ${HASHTAG}`);
+      window.open(`https://twitter.com/intent/tweet?text=${text}`, '_blank');
+    }
+
+    function shareToLINE() {
+      const text = encodeURIComponent(`Photo Harmonyで写真を共有しました！ ${HASHTAG}`);
+      window.open(`https://line.me/R/msg/text/?${text}`, '_blank');
+    }
+
+    function downloadCurrentPhoto() {
+      const link = document.createElement('a');
+      link.download = `photo_harmony_${Date.now()}.jpg`;
+      link.href = lastCapturedDataUrl;
+      link.click();
     }
 
     // 初期化
     initCamera();
-
   </script>
 </body>
 </html>
